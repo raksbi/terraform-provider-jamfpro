@@ -53,9 +53,9 @@ func (p *frameworkProvider) Schema(ctx context.Context, req provider.SchemaReque
 			},
 			"auth_method": schema.StringAttribute{
 				Optional:    true,
-				Description: "The auth method chosen for interacting with Jamf Pro. Options are 'basic' for username/password or 'oauth2' for client id/secret.",
+				Description: "The auth method chosen for interacting with Jamf Pro. Options are 'basic' for username/password, 'oauth2' for client id/secret, or 'bearer_token' for direct token.",
 				Validators: []validator.String{
-					stringvalidator.OneOf("basic", "oauth2"),
+					stringvalidator.OneOf("basic", "oauth2", "bearer_token"),
 				},
 			},
 			"client_id": schema.StringAttribute{
@@ -75,6 +75,11 @@ func (p *frameworkProvider) Schema(ctx context.Context, req provider.SchemaReque
 				Optional:    true,
 				Sensitive:   true,
 				Description: "The Jamf Pro password used for authentication when auth_method is 'basic'.",
+			},
+				"bearer_token": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "The bearer token for authentication when auth_method is 'bearer_token'.",
 			},
 			"enable_client_sdk_logs": schema.BoolAttribute{
 				Optional:    true,
@@ -136,6 +141,7 @@ func (p *frameworkProvider) Configure(ctx context.Context, req provider.Configur
 	clientSecret := getStringValueWithEnvFallback(config.ClientSecret, "JAMFPRO_CLIENT_SECRET")
 	basicUsername := getStringValueWithEnvFallback(config.BasicAuthUsername, "JAMFPRO_BASIC_USERNAME")
 	basicPassword := getStringValueWithEnvFallback(config.BasicAuthPassword, "JAMFPRO_BASIC_PASSWORD")
+	bearerToken := getStringValueWithEnvFallback(config.BearerToken, "JAMFPRO_BEARER_TOKEN")
 
 	// Validation - matching SDKv2 provider logic
 	if instanceFQDN == "" {
@@ -155,10 +161,10 @@ func (p *frameworkProvider) Configure(ctx context.Context, req provider.Configur
 	}
 
 	// Validate auth method
-	if authMethod != "basic" && authMethod != "oauth2" {
+	if authMethod != "basic" && authMethod != "oauth2" && authMethod != "bearer_token" {
 		resp.Diagnostics.AddError(
 			"invalid auth method supplied",
-			"Auth method must be 'basic' or 'oauth2'",
+			"Auth method must be 'basic', 'oauth2', or 'bearer_token'",
 		)
 		return
 	}
@@ -192,6 +198,14 @@ func (p *frameworkProvider) Configure(ctx context.Context, req provider.Configur
 			resp.Diagnostics.AddError(
 				"Error getting basic auth password",
 				"basic_auth_password must be provided either as an environment variable (JAMFPRO_BASIC_PASSWORD) or in the Terraform configuration when using basic auth method",
+			)
+			return
+			}
+	case "bearer_token":
+		if bearerToken == "" {
+			resp.Diagnostics.AddError(
+				"Error getting bearer token",
+				"bearer_token must be provided either as an environment variable (JAMFPRO_BEARER_TOKEN) or in the Terraform configuration when using bearer_token auth method",
 			)
 			return
 		}
@@ -264,6 +278,15 @@ func (p *frameworkProvider) Configure(ctx context.Context, req provider.Configur
 			tokenRefreshBuffer,
 			basicUsername,
 			basicPassword,
+			hideSensitiveData,
+			bootstrapClient,
+		)
+	case "bearer_token":
+		jamfIntegration, err = jamfprointegration.BuildWithBearerToken(
+			instanceFQDN,
+			sugaredLogger,
+			tokenRefreshBuffer,
+			bearerToken,
 			hideSensitiveData,
 			bootstrapClient,
 		)

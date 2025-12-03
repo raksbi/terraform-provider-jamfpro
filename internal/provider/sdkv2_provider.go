@@ -290,9 +290,9 @@ func Provider() *schema.Provider {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc(envVarJamfProAuthMethod, ""),
-				Description: "The auth method chosen for interacting with Jamf Pro. Options are 'basic' for username/password or 'oauth2' for client id/secret.",
+				Description: "The auth method chosen for interacting with Jamf Pro. Options are 'basic' for username/password, 'oauth2' for client id/secret, or 'bearer_token' for direct token.",
 				ValidateFunc: validation.StringInSlice([]string{
-					"basic", "oauth2",
+					"basic", "oauth2", "bearer_token",
 				}, true),
 			},
 			"client_id": {
@@ -320,6 +320,13 @@ func Provider() *schema.Provider {
 				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc(envVarBasicAuthPassword, ""),
 				Description: "The Jamf Pro password used for authentication when auth_method is 'basic'.",
+			},
+				"bearer_token": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				DefaultFunc: schema.EnvDefaultFunc("JAMFPRO_BEARER_TOKEN", ""),
+				Description: "The bearer token for authentication when auth_method is 'bearer_token'.",
 			},
 			"enable_client_sdk_logs": {
 				Type:        schema.TypeBool,
@@ -509,7 +516,8 @@ func Provider() *schema.Provider {
 			clientId,
 			clientSecret,
 			basicAuthUsername,
-			basicAuthPassword string
+			basicAuthPassword,
+			bearerToken string
 
 		// Logger
 		// Probably should move this into it's own function.
@@ -578,6 +586,24 @@ func Provider() *schema.Provider {
 				tokenRefrshBufferPeriod,
 				basicAuthUsername,
 				basicAuthPassword,
+				hide_sensitive_data,
+				bootstrapClient,
+			)
+
+		case "bearer_token":
+			bearerToken = d.Get("bearer_token").(string)
+			if bearerToken == "" {
+				return nil, append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Error getting bearer token",
+					Detail:   "bearer_token must be provided either as an environment variable (JAMFPRO_BEARER_TOKEN) or in the Terraform configuration when using bearer_token auth method",
+				})
+			}
+			jamfIntegration, err = jamfprointegration.BuildWithBearerToken(
+				jamfFQDN,
+				sugaredLogger,
+				tokenRefrshBufferPeriod,
+				bearerToken,
 				hide_sensitive_data,
 				bootstrapClient,
 			)
