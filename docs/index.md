@@ -26,6 +26,7 @@ provider "jamfpro" {
   auth_method                          = var.jamfpro_auth_method
   client_id                            = var.jamfpro_client_id
   client_secret                        = var.jamfpro_client_secret
+  bearer_token                         = var.jamfpro_bearer_token
   enable_client_sdk_logs               = var.enable_client_sdk_logs
   client_sdk_log_export_path           = var.client_sdk_log_export_path
   hide_sensitive_data                  = var.jamfpro_hide_sensitive_data
@@ -43,7 +44,7 @@ variable "jamfpro_instance_fqdn" {
 }
 
 variable "jamfpro_auth_method" {
-  description = "The auth method chosen for interacting with Jamf Pro. Options are 'basic' for username/password or 'oauth2' for client id/secret."
+  description = "The auth method chosen for interacting with Jamf Pro. Options are 'basic' for username/password, 'oauth2' for client id/secret, or 'bearer_token' for direct token."
   sensitive   = true
   default     = ""
 }
@@ -56,6 +57,12 @@ variable "jamfpro_client_id" {
 
 variable "jamfpro_client_secret" {
   description = "The Jamf Pro Client secret for authentication when auth_method is 'oauth2'."
+  sensitive   = true
+  default     = ""
+}
+
+variable "jamfpro_bearer_token" {
+  description = "The bearer token for authentication when auth_method is 'bearer_token'."
   sensitive   = true
   default     = ""
 }
@@ -116,9 +123,10 @@ variable "jamfpro_mandatory_request_delay_milliseconds" {
 
 ### Optional
 
-- `auth_method` (String) The auth method chosen for interacting with Jamf Pro. Options are 'basic' for username/password or 'oauth2' for client id/secret.
+- `auth_method` (String) The auth method chosen for interacting with Jamf Pro. Options are 'basic' for username/password, 'oauth2' for client id/secret, or 'bearer_token' for direct token.
 - `basic_auth_password` (String, Sensitive) The Jamf Pro password used for authentication when auth_method is 'basic'.
 - `basic_auth_username` (String) The Jamf Pro username used for authentication when auth_method is 'basic'.
+- `bearer_token` (String, Sensitive) The bearer token for authentication when auth_method is 'bearer_token'.
 - `client_id` (String) The Jamf Pro Client ID for authentication when auth_method is 'oauth2'.
 - `client_sdk_log_export_path` (String) Specify the path to export http client logs to.
 - `client_secret` (String, Sensitive) The Jamf Pro Client secret for authentication when auth_method is 'oauth2'.

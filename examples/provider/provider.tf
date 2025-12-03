@@ -20,6 +20,9 @@ provider "jamfpro" {
   mandatory_request_delay_milliseconds = var.jamfpro_mandatory_request_delay_milliseconds
   basic_auth_username                  = var.jamfpro_basic_auth_username
   basic_auth_password                  = var.jamfpro_basic_auth_password
+  jamfpro_instance_fqdn = "https://your-jamf-instance.jamfcloud.com"
+  auth_method           = "bearer_token"
+  # bearer_token will be read from JAMFPRO_BEARER_TOKEN environment variable
 }
 
 variable "jamfpro_instance_fqdn" {
@@ -94,4 +97,11 @@ variable "jamfpro_token_refresh_buffer_period_seconds" {
 variable "jamfpro_mandatory_request_delay_milliseconds" {
   description = "A mandatory delay after each request before returning to reduce high volume of requests in a short time."
   default     = 1000
+}
+
+# Example resource
+resource "jamfpro_policy" "example" {
+  name        = "Example Policy"
+  description = "Created via Terraform with bearer token auth"
+  # Add other required fields for your Jamf resource here
 }
